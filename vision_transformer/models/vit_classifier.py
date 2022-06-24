@@ -31,7 +31,7 @@ def img_to_patch(x, patch_size):
     
     return x
 
-class ViTClassifier(pl.LightningModule):
+class ViTClassifier(nn.Module):
     def __init__(self, embed_size, hidden_size, hidden_class_size, num_encoders, num_heads, patch_size, num_patches, dropout, learning_rate=0.001):
         super().__init__()
 
