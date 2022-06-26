@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 
 from vision_transformer.models.vit_encoder import ViTEncoder
-from vision_transformer.models.vit_encoder import ViTEncoderNormAfter
 
 def img_to_patch(x, patch_size):
     '''Transforms image into list of patches of the specified dimensions
@@ -17,9 +16,6 @@ def img_to_patch(x, patch_size):
     Returns:
         patch_seq (Tensor): List of patches of dimension B x N x [C * P ** 2],
         where N is the number of patches and P is patch_size.
-
-    Notes:
-        May need to add padding
     '''
     B, C, H, W = x.shape
 
@@ -32,13 +28,26 @@ def img_to_patch(x, patch_size):
     return x
 
 class ViTClassifier(nn.Module):
-    def __init__(self, embed_size, hidden_size, hidden_class_size, num_encoders, num_heads, patch_size, num_patches, dropout, learning_rate=0.001):
+    '''Encoder-only vision transformer
+
+    Args:
+        embed_dim (int): Size of embedding output from linear projection layer
+        hidden_dim (int): Size of MLP head
+        class_head_dim (int): Size of classification head
+        num_encoders (int): Number of encoder layers
+        num_heads (int): Number of self-attention heads
+        patch_size (int): Size of patches
+        num_patches (int): Total count of patches (patch sequence size) 
+        dropout (float): Probability of dropout
+    '''
+    def __init__(
+        self, embed_size, hidden_size, class_head_dim, num_encoders, 
+        num_heads, patch_size, num_patches, dropout):
         super().__init__()
 
         # Key parameters
         self.patch_size = patch_size
         self.num_patches = num_patches
-        self.save_hyperparameters()
 
         # Initial projection of flattened patches into an embedding
         self.input = nn.Linear(3*(patch_size**2), embed_size)
@@ -50,8 +59,8 @@ class ViTClassifier(nn.Module):
         )
         
         # Classification head
-        self.fc1 = nn.Linear(embed_size, hidden_class_size)
-        self.fc2 = nn.Linear(hidden_class_size, 100)
+        self.fc1 = nn.Linear(embed_size, class_head_dim)
+        self.fc2 = nn.Linear(class_head_dim, 100)
 
         # Learnable parameters for class and position embedding
         self.class_embed = nn.Parameter(torch.randn(1, 1, embed_size))

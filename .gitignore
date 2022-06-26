@@ -1,5 +1,6 @@
 vit/
 vit-cifar100/
+vit-cifar10/
 lightning_logs/
 wandb/
 random-sweep-1.yaml

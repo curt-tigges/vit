@@ -7,12 +7,27 @@ import vision_transformer.models.vit_classifier as vc
 from torch.optim.lr_scheduler import OneCycleLR
 from torchmetrics.functional import accuracy
 
-class ViTModel(pl.LightningModule):
+class ViTTrainModule(pl.LightningModule):
+    '''Encoder-only vision transformer
+
+    Args:
+        embed_dim (int): Size of embedding output from linear projection layer
+        hidden_dim (int): Size of MLP head
+        class_head_dim (int): Size of classification head
+        num_encoders (int): Number of encoder layers
+        num_heads (int): Number of self-attention heads
+        patch_size (int): Size of patches
+        num_patches (int): Total count of patches (patch sequence size) 
+        dropout (float): Probability of dropout
+        batch_size (int): Batch size (used for OneCycleLR)
+        learning_rate (float): Maximum learning rate
+        weight_decay (float): Optimizer weight decay
+    '''
     def __init__(
         self, 
-        embed_size, 
-        hidden_size, 
-        hidden_class_size, 
+        embed_dim, 
+        hidden_dim, 
+        class_head_dim, 
         num_encoders, 
         num_heads, 
         patch_size, 
@@ -28,15 +43,14 @@ class ViTModel(pl.LightningModule):
 
         # Transformer with arbitrary number of encoders, heads, and hidden size
         self.model = vc.ViTClassifier(
-            embed_size,
-            hidden_size,
-            hidden_class_size,
+            embed_dim,
+            hidden_dim,
+            class_head_dim,
             num_encoders,
             num_heads,
             patch_size,
             num_patches,
-            dropout,
-            learning_rate
+            dropout
         )
 
     def forward(self, x):
@@ -47,7 +61,6 @@ class ViTModel(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
-        #preds = torch.argmax(y_hat, dim=1)
         acc = accuracy(y_hat, y)
 
         if stage:
@@ -75,11 +88,7 @@ class ViTModel(pl.LightningModule):
             weight_decay=self.hparams.weight_decay)
         
         steps_per_epoch = 60000 // self.hparams.batch_size
-        '''
-        lr_scheduler_dict = {
-            "scheduler":MultiStepLR(optimizer, milestones=[100, 150], gamma=0.1)
-        }
-        '''
+   
         lr_scheduler_dict = {
             "scheduler":OneCycleLR(
                 optimizer,
